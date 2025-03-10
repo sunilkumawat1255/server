@@ -74,6 +74,7 @@ app.post("/login", async (req, res) => {
     if (!user || !(await bcrypt.compare(password, user.password)))
       return res.status(401).json({ msg: "Invalid credentials" });
     // res.json({ login: true, msg: "Login successful", user });
+    const token = jwt.sign({ user }, "your_secret_key", { expiresIn: "1h" });
     res.json({
       login: true,
       msg: "Login successful",
@@ -82,6 +83,7 @@ app.post("/login", async (req, res) => {
         username: user.username,
         email: user.email,
       },
+      token
     });
   } catch (error) {
     res.status(500).json({ msg: "Database error while checking email" });
