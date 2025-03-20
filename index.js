@@ -24,6 +24,13 @@ const UserSchema = new mongoose.Schema({
   username: String,
   email: String,
   password: String,
+  houseNo: String,
+  street: String,
+  city: String,
+  state: String,
+  pincode: String,
+  country: String,
+  phone: String,
 });
 
 const ProductSchema = new mongoose.Schema({
@@ -47,8 +54,8 @@ const Cart = mongoose.model("Cart", CartSchema);
 
 // ✅ Register User
 app.post("/register", async (req, res) => {
-  const { username, email, password, confirmPassword } = req.body;
-  if (!username || !email || !password || !confirmPassword)
+  const { username, email, password, confirmPassword, houseNo, street, city, state, pincode, country, phone } = req.body;
+  if (!username || !email || !password || !confirmPassword || !houseNo || !street || !city || !state || !pincode || !country || !phone)
     return res.status(400).json({ msg: "Please fill in all fields" });
   if (password !== confirmPassword)
     return res.status(400).json({ msg: "Passwords do not match" });
@@ -57,7 +64,7 @@ app.post("/register", async (req, res) => {
     if (existingUser)
       return res.status(409).json({ msg: "Email already registered" });
     const hashedPassword = await bcrypt.hash(password, 10);
-    await new User({ username, email, password: hashedPassword }).save();
+    await new User({ username, email, password: hashedPassword, houseNo, street, city, state, pincode, country, phone }).save();
     res.status(201).json({ msg: "User registered successfully" });
   } catch (error) {
     res.status(500).json({ msg: "Error registering user" });
@@ -69,21 +76,23 @@ app.post("/login", async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password)
     return res.status(400).json({ msg: "Please fill in all fields" });
+
   try {
     const user = await User.findOne({ email });
     if (!user || !(await bcrypt.compare(password, user.password)))
       return res.status(401).json({ msg: "Invalid credentials" });
-    // res.json({ login: true, msg: "Login successful", user });
-    const token = jwt.sign({ user }, "your_secret_key", { expiresIn: "1h" });
+
+    const token = jwt.sign(
+      { user: { id: user._id.toString(), username: user.username, email: user.email } },
+      "your_secret_key",
+      { expiresIn: "1h" } // Set token expiration
+    );
+
     res.json({
       login: true,
       msg: "Login successful",
-      user: {
-        id: user._id.toString(), // Convert ObjectId to string
-        username: user.username,
-        email: user.email,
-      },
-      token
+      user: { id: user._id.toString(), username: user.username, email: user.email },
+      token,
     });
   } catch (error) {
     res.status(500).json({ msg: "Database error while checking email" });
