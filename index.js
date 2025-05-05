@@ -31,6 +31,10 @@ const UserSchema = new mongoose.Schema({
   pincode: String,
   country: String,
   phone: String,
+  isActive: {
+    type: Boolean,
+    default: true,
+  },
 });
 
 const ProductSchema = new mongoose.Schema({
@@ -323,8 +327,14 @@ app.get("/isAuth", (req, res) => {
 // ✅ Admin: Get All Users Dashboard
 app.get("/api/users", async (req, res) => {
   try {
-    const users = await User.find();
-    res.json(users);
+    const totalUsers = await User.countDocuments();
+    const activeUsers = await User.find({ isActive: true });
+
+    res.json({
+      totalUsers,
+      activeUsersCount: activeUsers.length,
+      activeUsers
+    });
   } catch (error) {
     res.status(500).send("Database query failed");
   }
