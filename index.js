@@ -327,13 +327,13 @@ app.get("/isAuth", (req, res) => {
 // ✅ Admin: Get All Users Dashboard
 app.get("/api/users", async (req, res) => {
   try {
-    const totalUsers = await User.countDocuments();
+    const users = await User.find();
     const activeUsers = await User.find({ isActive: true });
 
     res.json({
-      totalUsers,
+      totalUsers: users.length,
       activeUsersCount: activeUsers.length,
-      activeUsers
+      users
     });
   } catch (error) {
     res.status(500).send("Database query failed");
