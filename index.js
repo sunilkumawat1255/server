@@ -1,6 +1,8 @@
 require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
+const Stripe = require("stripe");
+const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 const bcrypt = require('bcrypt');
 const jwt = require("jsonwebtoken");
 const cors = require("cors");
@@ -9,7 +11,16 @@ app.use(cors());
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 
+
 const PORT = process.env.PORT || 8000;
+// connect to stripe 
+stripe.customers.list({ limit: 1 })
+  .then(() => console.log("✅ Stripe is connected successfully"))
+  .catch((err) => {
+    console.error("❌ Stripe connection failed:", err.message);
+    process.exit(1); // Optional: stop server if Stripe is critical
+  });
+
 
 // Connect to MongoDB Atlas
 mongoose
@@ -267,6 +278,101 @@ app.delete("/cart/:userId", async (req, res) => {
     res.status(500).json({ message: "Error clearing cart" });
   }
 });
+
+// ✅ payment 
+app.post("/create-checkout-session/:userId", async (req, res) => {
+  const { userId } = req.params;
+  const { email } = req.body;
+
+  try {
+    const cartItems = await Cart.aggregate([
+      {
+        $match: { user_id: new mongoose.Types.ObjectId(userId) },
+      },
+      {
+        $lookup: {
+          from: "products",
+          localField: "product_id",
+          foreignField: "_id",
+          as: "product",
+        },
+      },
+      { $unwind: "$product" },
+      {
+        $project: {
+          quantity: 1,
+          "product.name": 1,
+          "product.price": 1,
+          "product.img": 1,
+        },
+      },
+    ]);
+
+    if (!cartItems.length) {
+      return res.status(400).json({ error: "Cart is empty" });
+    }
+
+    const line_items = cartItems.map((item) => ({
+      price_data: {
+        currency: "usd",
+        product_data: {
+          name: item.product.name,
+          images: [item.product.img],
+        },
+        unit_amount: item.product.price * 100,
+      },
+      quantity: item.quantity,
+    }));
+
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ["card"],
+      line_items,
+      mode: "payment",
+      customer_email: email,
+      success_url: "http://localhost:3000/success",
+      cancel_url: "http://localhost:3000/cancel",
+    });
+
+    res.json({ url: session.url });
+  } catch (err) {
+    console.error("Stripe Checkout Error:", err);
+    res.status(500).json({ error: "Failed to create checkout session" });
+  }
+});
+
+// ===== second stripe setup if we use this then comment the above one 
+// app.post("/create-checkout-session", async (req, res) => {
+//   try {
+//     const { cartItems, userEmail } = req.body;
+
+//     const line_items = cartItems.map(item => ({
+//       price_data: {
+//         currency: "usd",
+//         product_data: {
+//           name: item.product.name,
+//           images: [item.product.img],
+//         },
+//         unit_amount: item.product.price * 100,
+//       },
+//       quantity: item.quantity,
+//     }));
+
+//     const session = await stripe.checkout.sessions.create({
+//       payment_method_types: ["card"],
+//       line_items,
+//       mode: "payment",
+//       success_url: "http://localhost:3000/success",  // ⚠️ update with your frontend route
+//       cancel_url: "http://localhost:3000/cancel",    // ⚠️ update with your frontend route
+//       customer_email: userEmail,
+//     });
+
+//     res.json({ url: session.url });
+//   } catch (err) {
+//     console.error("Stripe error:", err);
+//     res.status(500).json({ error: "Payment session failed" });
+//   }
+// });
+
 
 // ✅ Get User Profile My Profile View
 app.get("/myprofile/:userId", async (req, res) => {
