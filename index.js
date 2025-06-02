@@ -280,6 +280,7 @@ app.delete("/cart/:userId", async (req, res) => {
 });
 
 // ✅ payment 
+// Assuming Express + Mongoose + Stripe already configured
 app.post("/create-checkout-session/:userId", async (req, res) => {
   const { userId } = req.params;
   const { email } = req.body;
@@ -312,17 +313,29 @@ app.post("/create-checkout-session/:userId", async (req, res) => {
       return res.status(400).json({ error: "Cart is empty" });
     }
 
-    const line_items = cartItems.map((item) => ({
-      price_data: {
-        currency: "usd",
-        product_data: {
-          name: item.product.name,
-          images: [item.product.img],
+    const line_items = cartItems.map((item) => {
+      const productData = {
+        name: item.product.name,
+      };
+
+      // Only use image if it's a valid HTTP(S) URL under 2048 characters
+      if (
+        item.product.img &&
+        item.product.img.length <= 2048 &&
+        item.product.img.startsWith("http")
+      ) {
+        productData.images = [item.product.img];
+      }
+
+      return {
+        price_data: {
+          currency: "usd",
+          product_data: productData,
+          unit_amount: Math.round(item.product.price * 100),
         },
-        unit_amount: item.product.price * 100,
-      },
-      quantity: item.quantity,
-    }));
+        quantity: item.quantity,
+      };
+    });
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
@@ -333,12 +346,15 @@ app.post("/create-checkout-session/:userId", async (req, res) => {
       cancel_url: "http://localhost:3000/cancel",
     });
 
-    res.json({ url: session.success_url });
+    res.json({ url: session.url });
   } catch (err) {
     console.error("Stripe Checkout Error:", err);
-    res.status(500).json({ error: "Failed to create checkout session" });
+    res.status(500).json({
+      error: err.message || "Failed to create checkout session",
+    });
   }
 });
+
 
 // ===== second stripe setup if we use this then comment the above one 
 // app.post("/create-checkout-session", async (req, res) => {
