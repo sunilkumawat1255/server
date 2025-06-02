@@ -342,8 +342,8 @@ app.post("/create-checkout-session/:userId", async (req, res) => {
       line_items,
       mode: "payment",
       customer_email: email,
-      success_url: "http://localhost:3000/success",
-      cancel_url: "http://localhost:3000/cancel",
+      success_url: "fruitshop-project.vercel.app/success",
+      cancel_url: "fruitshop-project.vercel.app/cancel",
     });
 
     res.json({ url: session.url });
