@@ -3,7 +3,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 const Stripe = require("stripe");
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
-const bcrypt = require('bcrypt');
+const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const cors = require("cors");
 const app = express();
@@ -11,16 +11,15 @@ app.use(cors());
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 
-
 const PORT = process.env.PORT || 8000;
-// connect to stripe 
-stripe.customers.list({ limit: 1 })
+// connect to stripe
+stripe.customers
+  .list({ limit: 1 })
   .then(() => console.log("✅ Stripe is connected successfully"))
   .catch((err) => {
     console.error("❌ Stripe connection failed:", err.message);
     process.exit(1); // Optional: stop server if Stripe is critical
   });
-
 
 // Connect to MongoDB Atlas
 mongoose
@@ -67,8 +66,32 @@ const Cart = mongoose.model("Cart", CartSchema);
 
 // ✅ Register User
 app.post("/register", async (req, res) => {
-  const { username, email, password, confirmPassword, houseNo, street, city, state, pincode, country, phone } = req.body;
-  if (!username || !email || !password || !confirmPassword || !houseNo || !street || !city || !state || !pincode || !country || !phone)
+  const {
+    username,
+    email,
+    password,
+    confirmPassword,
+    houseNo,
+    street,
+    city,
+    state,
+    pincode,
+    country,
+    phone,
+  } = req.body;
+  if (
+    !username ||
+    !email ||
+    !password ||
+    !confirmPassword ||
+    !houseNo ||
+    !street ||
+    !city ||
+    !state ||
+    !pincode ||
+    !country ||
+    !phone
+  )
     return res.status(400).json({ msg: "Please fill in all fields" });
   if (password !== confirmPassword)
     return res.status(400).json({ msg: "Passwords do not match" });
@@ -77,7 +100,18 @@ app.post("/register", async (req, res) => {
     if (existingUser)
       return res.status(409).json({ msg: "Email already registered" });
     const hashedPassword = await bcrypt.hash(password, 10);
-    await new User({ username, email, password: hashedPassword, houseNo, street, city, state, pincode, country, phone }).save();
+    await new User({
+      username,
+      email,
+      password: hashedPassword,
+      houseNo,
+      street,
+      city,
+      state,
+      pincode,
+      country,
+      phone,
+    }).save();
     res.status(201).json({ msg: "User registered successfully" });
   } catch (error) {
     res.status(500).json({ msg: "Error registering user" });
@@ -96,7 +130,13 @@ app.post("/login", async (req, res) => {
       return res.status(401).json({ msg: "Invalid credentials" });
 
     const token = jwt.sign(
-      { user: { id: user._id.toString(), username: user.username, email: user.email } },
+      {
+        user: {
+          id: user._id.toString(),
+          username: user.username,
+          email: user.email,
+        },
+      },
       "your_secret_key",
       { expiresIn: "1h" } // Set token expiration
     );
@@ -104,7 +144,11 @@ app.post("/login", async (req, res) => {
     res.json({
       login: true,
       msg: "Login successful",
-      user: { id: user._id.toString(), username: user.username, email: user.email },
+      user: {
+        id: user._id.toString(),
+        username: user.username,
+        email: user.email,
+      },
       token,
     });
   } catch (error) {
@@ -279,7 +323,7 @@ app.delete("/cart/:userId", async (req, res) => {
   }
 });
 
-// ✅ payment 
+// ✅ payment
 // Assuming Express + Mongoose + Stripe already configured
 app.post("/create-checkout-session/:userId", async (req, res) => {
   const { userId } = req.params;
@@ -337,13 +381,15 @@ app.post("/create-checkout-session/:userId", async (req, res) => {
       };
     });
 
+    const baseUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       line_items,
       mode: "payment",
       customer_email: email,
-      success_url: "fruitshop-project.vercel.app/success",
-      cancel_url: "fruitshop-project.vercel.app/cancel",
+      success_url: `${baseUrl}/success`,
+      cancel_url: `${baseUrl}/cancel`,
     });
 
     res.json({ url: session.url });
@@ -355,8 +401,7 @@ app.post("/create-checkout-session/:userId", async (req, res) => {
   }
 });
 
-
-// ===== second stripe setup if we use this then comment the above one 
+// ===== second stripe setup if we use this then comment the above one
 // app.post("/create-checkout-session", async (req, res) => {
 //   try {
 //     const { cartItems, userEmail } = req.body;
@@ -388,7 +433,6 @@ app.post("/create-checkout-session/:userId", async (req, res) => {
 //     res.status(500).json({ error: "Payment session failed" });
 //   }
 // });
-
 
 // ✅ Get User Profile My Profile View
 app.get("/myprofile/:userId", async (req, res) => {
@@ -453,7 +497,7 @@ app.get("/api/users", async (req, res) => {
     res.json({
       totalUsers: users.length,
       activeUsersCount: activeUsers.length,
-      users
+      users,
     });
   } catch (error) {
     res.status(500).send("Database query failed");
