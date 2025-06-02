@@ -333,7 +333,7 @@ app.post("/create-checkout-session/:userId", async (req, res) => {
       cancel_url: "http://localhost:3000/cancel",
     });
 
-    res.json({ url: session.url });
+    res.json({ url: session.success_url });
   } catch (err) {
     console.error("Stripe Checkout Error:", err);
     res.status(500).json({ error: "Failed to create checkout session" });
