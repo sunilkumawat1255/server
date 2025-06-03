@@ -381,7 +381,7 @@ app.post("/create-checkout-session/:userId", async (req, res) => {
       };
     });
 
-    const baseUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+    const baseUrl = process.env.FRONTEND_URL || "https://fruitshop-project.vercel.app";
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
