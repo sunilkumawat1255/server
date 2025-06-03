@@ -401,39 +401,6 @@ app.post("/create-checkout-session/:userId", async (req, res) => {
   }
 });
 
-// ===== second stripe setup if we use this then comment the above one
-// app.post("/create-checkout-session", async (req, res) => {
-//   try {
-//     const { cartItems, userEmail } = req.body;
-
-//     const line_items = cartItems.map(item => ({
-//       price_data: {
-//         currency: "usd",
-//         product_data: {
-//           name: item.product.name,
-//           images: [item.product.img],
-//         },
-//         unit_amount: item.product.price * 100,
-//       },
-//       quantity: item.quantity,
-//     }));
-
-//     const session = await stripe.checkout.sessions.create({
-//       payment_method_types: ["card"],
-//       line_items,
-//       mode: "payment",
-//       success_url: "http://localhost:3000/success",  // ⚠️ update with your frontend route
-//       cancel_url: "http://localhost:3000/cancel",    // ⚠️ update with your frontend route
-//       customer_email: userEmail,
-//     });
-
-//     res.json({ url: session.url });
-//   } catch (err) {
-//     console.error("Stripe error:", err);
-//     res.status(500).json({ error: "Payment session failed" });
-//   }
-// });
-
 // ✅ Get User Profile My Profile View
 app.get("/myprofile/:userId", async (req, res) => {
   const userId = req.params.userId;
@@ -447,13 +414,9 @@ app.get("/myprofile/:userId", async (req, res) => {
   }
 });
 
-// =====================
-
 // %%%%%%%%%%%%%%%%
 // ADMIN FUNCTIONALITY
 // %%%%%%%%%%%%%%%%
-
-// =====================
 
 // ✅ Admin Login
 const adminCredentials = {
